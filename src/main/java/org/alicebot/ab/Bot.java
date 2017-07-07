@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 
 /**
@@ -20,7 +21,16 @@ public class Bot {
 
     private static final File[] EMPTY_FILES = new File[0];
 
-    private Properties properties = new Properties();
+    /**
+     * Bot Properties
+     */
+    private Map<String, String> properties = new HashMap<String, String>() {
+        @Override
+        public String get(Object key) {
+            return Optional.ofNullable(super.get(key)).orElse(Constants.default_property);
+        }
+    };
+
     private PreProcessor preProcessor;
     private AIMLProcessor aimlProcessor;
 
@@ -39,7 +49,7 @@ public class Bot {
     private String sets_path;
     private String maps_path;
 
-    public Properties getProperties() {
+    public Map<String, String> getProperties() {
         return properties;
     }
 
@@ -114,7 +124,7 @@ public class Bot {
         preProcessor = new PreProcessor(this);
         aimlProcessor = new AIMLProcessor();
 
-        properties.getProperties(props_path);
+        getProperties(props_path);
 
         pronounSet = getPronouns();
 
@@ -133,6 +143,27 @@ public class Bot {
         brain.addCategory(b);
         brain.nodeStats();
         learnfGraph.nodeStats();
+    }
+
+    /**
+     * Read bot properties from a file.
+     *
+     * @param filename file containing bot properties
+     */
+    private void getProperties(String filename) throws IOException {
+        File file = new File(filename);
+        if (file.exists()) {
+            try (BufferedReader br = Files.newBufferedReader(file.toPath())) {
+                int index;
+                String strLine;
+                while ((strLine = br.readLine()) != null) {
+                    if (strLine.contains(":")) {
+                        index = strLine.indexOf(":");
+                        properties.put(strLine.substring(0, index), strLine.substring(index + 1));
+                    }
+                }
+            }
+        }
     }
 
     private Set<String> getPronouns() throws IOException {
